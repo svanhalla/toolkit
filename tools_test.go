@@ -56,8 +56,9 @@ func TestTools_UploadFiles(t *testing.T) {
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 
+		var err error
 		go func() {
-			defer writer.Close()
+			defer safeClose(writer, &err)
 			defer wg.Done()
 
 			/// create the form data field 'file'
@@ -70,7 +71,7 @@ func TestTools_UploadFiles(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			defer f.Close()
+			defer safeClose(f, &err)
 
 			img, _, err := image.Decode(f)
 			if err != nil {
@@ -118,8 +119,9 @@ func TestTools_UploadOneFile(t *testing.T) {
 	pr, pw := io.Pipe()
 	writer := multipart.NewWriter(pw)
 
+	var err error
 	go func() {
-		defer writer.Close()
+		defer safeClose(writer, &err)
 
 		/// create the form data field 'file'
 		part, err := writer.CreateFormFile("file", "./testdata/img.png")
@@ -131,7 +133,7 @@ func TestTools_UploadOneFile(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		defer f.Close()
+		defer safeClose(f, &err)
 
 		img, _, err := image.Decode(f)
 		if err != nil {
@@ -162,4 +164,20 @@ func TestTools_UploadOneFile(t *testing.T) {
 
 	// clean up
 	_ = os.Remove(fmt.Sprintf("./testdata/uploads/%s", uploadedFiles.NewFileName))
+}
+
+func TestTools_CreateDirIfNotExists(t *testing.T) {
+	var testTool Tools
+
+	err := testTool.CreateDirIfNotExists("./testdata/myDir")
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = testTool.CreateDirIfNotExists("./testdata/myDir")
+	if err != nil {
+		t.Error(err)
+	}
+
+	_ = os.Remove("./testdata/myDir")
 }
